@@ -14,3 +14,5 @@ allow init vendor_configs_file:file mounton;
 
 # Allow init create cgroups
 allow init cgroup:file create;
+
+permissive init;
