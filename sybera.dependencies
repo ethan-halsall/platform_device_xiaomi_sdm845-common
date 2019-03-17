@@ -1,7 +1,7 @@
 [
   {
     "repository": "ethan-halsall/Simple-Kernel",
-    "target_path": "kernel/xiaomi/sdm845"
+    "target_path": "kernel/xiaomi/sdm845",
     "branch"     : "simple-pie"
   },
   {
