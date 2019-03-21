@@ -70,13 +70,6 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.netflix.bsp_rev=Q845-05000-1
 
-# Perf
-PRODUCT_PROPERTY_OVERRIDES += \
-    ro.vendor.qti.core_ctl_min_cpu=2 \
-    ro.vendor.qti.core_ctl_max_cpu=4 \
-    vendor.iop.enable_prefetch_ofr=0 \
-    vendor.iop.enable_uxe=0
-
 # RCS and IMS
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.dbg.volte_avail_ovr=1 \
@@ -109,9 +102,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # DPI
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.sf.lcd_density=420
-    
+
 # QTI Performance
 PRODUCT_PROPERTY_OVERRIDES += \
+    ro.vendor.qti.core_ctl_min_cpu=2 \
+    ro.vendor.qti.core_ctl_max_cpu=4 \
     ro.vendor.at_library=libqti-at.so \
     vendor.debug.enable.gamed=0 \
 
