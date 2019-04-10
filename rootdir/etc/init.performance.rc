@@ -20,6 +20,11 @@ on init
     write /dev/stune/foreground/schedtune.colocate 0
     write /dev/stune/top-app/schedtune.colocate 0
 
+on boot
+    # Set SQLite flags for F2FS because some DBs might be opened early
+    setprop debug.sqlite.journalmode OFF
+    setprop debug.sqlite.syncmode OFF
+
 on property:sys.boot_completed=1
     # Set the default IRQ affinity to the silver cluster.
     write /proc/irq/default_smp_affinity "f"
