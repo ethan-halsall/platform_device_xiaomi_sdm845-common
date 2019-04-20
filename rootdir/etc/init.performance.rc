@@ -1,10 +1,5 @@
 
 on init
-    # Enable UFS powersaving
-    write /sys/devices/soc/${ro.boot.bootdevice}/clkscale_enable 1
-    write /sys/devices/soc/${ro.boot.bootdevice}/clkgate_enable 1
-    write /sys/module/lpm_levels/parameters/sleep_disabled N
-
     # Disable Boost_No_Override
     write /dev/stune/foreground/schedtune.sched_boost_no_override 0
     write /dev/stune/top-app/schedtune.sched_boost_no_override 0
@@ -25,9 +20,10 @@ on boot
     setprop debug.sqlite.journalmode OFF
     setprop debug.sqlite.syncmode OFF
 
+    write /dev/stune/foreground/schedtune.sched_boost_no_override 0
+	write /dev/stune/top-app/schedtune.sched_boost_no_override 0
+
 on property:sys.boot_completed=1
-    # Set the default IRQ affinity to the silver cluster.
-    write /proc/irq/default_smp_affinity "f"
 
     # Runtime FS tuning: as we have init boottime setting and kernel patch setting
     # default readahead to 2048KB. We should adjust the setting upon boot_complete
@@ -45,24 +41,90 @@ on property:sys.boot_completed=1
     write /sys/block/dm-1/queue/read_ahead_kb 128
     write /sys/block/dm-2/queue/read_ahead_kb 128
     write /sys/block/dm-3/queue/read_ahead_kb 128
+	
+    # Disable CAF task placement for Big Cores
+    write /proc/sys/kernel/sched_walt_rotate_big_tasks 0
+
+    # Since we are not using core rotator, lets load balance
+    write /dev/cpuset/top-app/cpus "0-7"
+    write /dev/cpuset/foreground/cpus "0-5"
+    write /dev/cpuset/background/cpus "0"
+    write /dev/cpuset/system-background/cpus "0-5"
+    write /dev/cpuset/camera-daemon/cpus "0-5"
  
     # configure governor settings for little cluster
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "schedutil"
-    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl 1
-    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq 1209600
+    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl 0
+    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_load 85
+    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq 1324000
     write /sys/devices/system/cpu/cpufreq/policy0/schedutil/iowait_boost_enable 1
 
     # configure governor settings for big cluster
     write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor "schedutil"
-    write /sys/devices/system/cpu/cpufreq/policy4/schedutil/pl 1
-    write /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq 1574400 
+    write /sys/devices/system/cpu/cpufreq/policy4/schedutil/pl 0
+    write /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq 1536000
+    write /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_load 90
     write /sys/devices/system/cpu/cpufreq/policy4/schedutil/iowait_boost_enable 1
 
-    # Increase how much CPU bandwidth (CPU time) realtime scheduling processes are given
+    # Setup stune parameters
     write /proc/sys/kernel/sched_rt_runtime_us 980000
+    write  /proc/sys/kernel/sched_latency_ns 1500000
+    write /proc/sys/kernel/sched_min_granularity_ns 2000000
+    write /proc/sys/kernel/sched_wakeup_granularity_ns 10000000
+    write /dev/stune/schedtune.prefer_idle 1
+    write /dev/stune/cgroup.clone_children 0
+    write /dev/stune/cgroup.sane_behavior 0
+    write /dev/stune/notify_on_release 0
+    write /dev/stune/top-app/schedtune.sched_boost 0	
+    write /dev/stune/top-app/notify_on_release 0
+    write /dev/stune/top-app/cgroup.clone_children 0	
+    write /dev/stune/foreground/schedtune.sched_boost 0
+    write /dev/stune/foreground/notify_on_release 0
+    write /dev/stune/foreground/cgroup.clone_children 0
+    write /dev/stune/background/schedtune.sched_boost 0
+    write /dev/stune/background/notify_on_release 0
+    write /dev/stune/background/cgroup.clone_children 0
+    write /dev/cpuset/cgroup.clone_children 0
+    write /dev/cpuset/cgroup.sane_behavior 0
+    write /dev/cpuset/notify_on_release 0
+    write /dev/cpuctl/cgroup.clone_children 0
+    write /dev/cpuctl/cgroup.sane_behavior 0
+    write /dev/cpuctl/notify_on_release 0 
+    write /dev/cpuctl/cpu.rt_period_us 1000000
+    write /dev/stune/top-app/schedtune.prefer_idle 0
+    write /dev/stune/foreground/schedtune.prefer_idle 1
+    write /dev/stune/background/schedtune.prefer_idle 1
+    write /dev/stune/rt/schedtune.prefer_idle 1
 
-    #Enable suspend to idle mode to reduce latency during suspend/resume
-    write /sys/power/mem_sleep "s2idle"
+    #Setup blkio cgroups
+    write /dev/blkio/cgroup.clone_children 0
+    write /dev/blkio/cgroup.sane_behavior 0
+    write /dev/blkio/notify_on_release 0
+    write /dev/blkio/bg/cgroup.clone_children 0
+    write /dev/blkio/bg/cgroup.sane_behavior 0
+    write /dev/blkio/bg/notify_on_release 0
+
+    #Optimize the Adreno 630 GPU into delivering improved power efficiency, but do it without causing any real world, notable performance regressions of any possible kind;
+    write /sys/class/kgsl/kgsl-3d0/force_no_nap 0
+    write /sys/class/kgsl/kgsl-3d0/throttling 0
+
+    # Marginally reduce suspend latency
+    write /sys/module/printk/parameters/console_suspend 1
+
+    # A couple of minor kernel entropy tweaks & enhancements for a slight UI responsivness boost;
+    write /proc/sys/kernel/random/read_wakeup_threshold 128
+    write /proc/sys/kernel/random/urandom_min_reseed_secs 96
+    write /proc/sys/kernel/random/write_wakeup_threshold 2560
+
+    # Disable in-kernel sched statistics for reduced overhead;
+    write /proc/sys/kernel/sched_schedstats 0
+
+    # FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
+    write /proc/sys/fs/dir-notify-enable 0
+    write /proc/sys/fs/lease-break-time 20
+
+    # Reduce kswapd cpu usage
+    write /proc/sys/vm/swappiness 85
 
     #Configure Thermal Profile
     write /sys/class/thermal/thermal_message/sconfig 10
