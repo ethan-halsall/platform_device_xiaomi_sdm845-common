@@ -34,6 +34,8 @@
 extern "C" {
 #endif
 
+#include <hardware/power.h>
+
 enum stats_type {
     //Platform Stats
     RPM_MODE_XO = 0,
@@ -83,6 +85,9 @@ enum wlan_power_params {
 #define XO_VOTERS (MAX_PLATFORM_STATS - XO_VOTERS_START)
 #define VMIN_VOTERS 0
 
+#define INPUT_EVENT_WAKUP_MODE_OFF 4
+#define INPUT_EVENT_WAKUP_MODE_ON 5
+
 struct stat_pair {
     enum stats_type stat;
     const char *label;
@@ -92,6 +97,7 @@ struct stat_pair {
 
 int extract_platform_stats(uint64_t *list);
 int extract_wlan_stats(uint64_t *list);
+void set_feature(feature_t feature, int state);
 
 #ifdef __cplusplus
 }

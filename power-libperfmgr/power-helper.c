@@ -38,6 +38,8 @@
 #include <fcntl.h>
 #include <dlfcn.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <linux/input.h>
 
 #include <log/log.h>
 
@@ -84,6 +86,22 @@ const char *wlan_power_stat_params[] = {
 struct stat_pair wlan_stat_map[] = {
     { WLAN_POWER_DEBUG_STATS, "POWER DEBUG STATS", wlan_power_stat_params, ARRAY_SIZE(wlan_power_stat_params) },
 };
+
+void set_feature(feature_t feature, int state) {
+    switch (feature) {
+        case POWER_FEATURE_DOUBLE_TAP_TO_WAKE: {
+            int fd = open(TAP_TO_WAKE_NODE, O_RDWR);
+            struct input_event ev;
+            ev.type = EV_SYN;
+            ev.code = SYN_CONFIG;
+            ev.value = state ? INPUT_EVENT_WAKUP_MODE_ON : INPUT_EVENT_WAKUP_MODE_OFF ;
+            write(fd, &ev, sizeof(ev));
+            close(fd);
+        } break;
+        default:
+            break;
+    }
+}
 
 static int parse_stats(const char **params, size_t params_size,
                        uint64_t *list, FILE *fp) {
